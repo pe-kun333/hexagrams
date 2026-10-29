@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hexagrams — 六角形のノノグラム（ロジックパズル）</title>
+<meta name="description" content="Hexagrams は六角形のマスで遊ぶノノグラム型ロジックパズルです。3方向の数字を手がかりにマスを塗ると絵が現れます。ブラウザだけで遊べて、登録も通信も不要です。">
+<meta name="theme-color" content="#14110c">
+<meta name="color-scheme" content="dark">
+<meta name="robots" content="index,follow">
+<!-- OGP / Twitter card. Image and page URLs are absolute so link previews can load them. -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://pe-kun333.github.io/hexagrams/">
+<meta property="og:site_name" content="Hexagrams">
+<meta property="og:title" content="Hexagrams — 六角形のロジックパズル">
+<meta property="og:description" content="3方向の数字を手がかりに六角形のマスを塗って絵を完成させるノノグラム型パズル。ブラウザだけで遊べます。">
+<meta property="og:image" content="https://pe-kun333.github.io/hexagrams/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="六角形のマスで描かれた絵と Hexagrams のロゴ">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Hexagrams — 六角形のロジックパズル">
+<meta name="twitter:description" content="3方向の数字を手がかりに六角形のマスを塗って絵を完成させるノノグラム型パズル。">
+<meta name="twitter:image" content="https://pe-kun333.github.io/hexagrams/og.png">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app" id="app">
+<header>
+  <button class="iconbtn only-m" id="drawerBtn" aria-label="パズル一覧" data-i18n-aria="list" aria-controls="side" aria-expanded="false">☰</button>
+  <div class="brand"><svg class="lg" viewBox="0 0 32 32" aria-hidden="true"><use href="#logo"/></svg><span>Hexagrams</span></div>
+  <div class="ptitle" id="ptitle" aria-live="polite"></div>
+  <div class="spacer"></div>
+  <div class="stats">
+    <div class="stat" title="タイム" data-i18n-title="time">⏱ <b id="timer">0:00</b></div>
+    <div class="stat" id="missStat"><span data-i18n="miss">ミス</span> <b id="miss">—</b></div>
+    <div class="stat"><span data-i18n="hints">ヒント</span> <b id="hints">0</b></div>
+  </div>
+  <button class="iconbtn" id="howBtn" aria-label="遊び方" data-i18n-aria="howto">?</button>
+  <button class="iconbtn lang" id="langBtn" aria-label="English / 日本語">EN</button>
+</header>
+<div class="main">
+<aside id="side" aria-label="パズル一覧" data-i18n-aria="list">
+  <div id="list"></div>
+  <h3 data-i18n="qTitle">ピクチャークエスト</h3>
+  <div class="qside">
+    <button class="btn pri wide" id="qSideBtn">🖼 <span data-i18n="qFromPic">画像からパズルを作る</span></button>
+    <div class="help" data-i18n="qSideHelp">好きな絵を六角形のドット絵に変換し、いくつかのステージに分けて遊べます。</div>
+  </div>
+  <h3 data-i18n="random">ランダム生成</h3>
+  <div class="rnd">
+    <div class="seg" id="sizeSeg" role="radiogroup">
+      <button data-side="4" data-i18n="s4">小</button><button data-side="5" class="on" data-i18n="s5">中</button><button data-side="6" data-i18n="s6">大</button><button data-side="7" data-i18n="s7">特大</button>
+    </div>
+    <button class="btn pri wide" id="rndBtn" data-i18n="rndBtn">🎲 問題を作る</button>
+    <div class="help" id="rndInfo" data-i18n="rndInfo">線の論理だけで答えが1つに決まる問題が出るまで作り直します。</div>
+  </div>
+  <h3 data-i18n="settings">設定</h3>
+  <div class="settings">
+    <label class="chk"><input type="checkbox" id="hardChk"> <span><b data-i18n="hard">ハードモード</b><br><small data-i18n="hardDesc">数字の一部を隠します（答えは1つのまま）</small></span></label>
+    <label class="chk"><input type="checkbox" id="missChk"> <span><b data-i18n="checkMiss">ミスチェック</b><br><small data-i18n="checkMissDesc">間違って塗ったマスをその場で赤く表示</small></span></label>
+    <label class="chk"><input type="checkbox" id="lpChk" checked> <span><b data-i18n="longPress">長押しで×印</b><br><small data-i18n="longPressDesc">タッチ操作のとき</small></span></label>
+    <button class="btn wide danger" id="wipeBtn" data-i18n="wipe">保存データを消去</button>
+    <p class="help" data-i18n="privacy">進み具合と記録はこの端末のブラウザ内（localStorage）にだけ保存されます。外部への通信はしません。</p>
+  </div>
+</aside>
+<div class="backdrop" id="backdrop"></div>
+<div class="stage">
+  <div class="tools" role="toolbar" aria-label="操作" data-i18n-aria="tools">
+    <div class="mode" id="modeSeg" role="radiogroup" aria-label="入力モード" data-i18n-aria="inputMode">
+      <button data-mode="fill" class="on" role="radio" aria-checked="true"><span class="sw f"></span><span data-i18n="fill">塗る</span></button>
+      <button data-mode="mark" role="radio" aria-checked="false"><span class="sw x">✕</span><span data-i18n="mark">×印</span></button>
+    </div>
+    <div class="mode pal" id="palSeg" role="radiogroup" aria-label="色" data-i18n-aria="palette" hidden></div>
+    <button class="btn" id="mapBtn" hidden><span aria-hidden="true">🗺</span> <span data-i18n="qMap">マップ</span></button>
+    <button class="btn" id="undoBtn"><span aria-hidden="true">↶</span> <span data-i18n="undo">戻す</span></button>
+    <button class="btn" id="hintBtn"><span aria-hidden="true">💡</span> <span data-i18n="hint">ヒント</span></button>
+    <button class="btn" id="resetBtn" data-i18n="reset">リセット</button>
+    <button class="btn" id="ansBtn" data-i18n="answer">答え</button>
+  </div>
+  <div class="boardwrap" id="wrap">
+    <svg id="board" xmlns="http://www.w3.org/2000/svg" tabindex="0" role="application" aria-roledescription="パズル盤面" aria-label="盤面" aria-describedby="kbdHelp"></svg>
+    <div class="zoom" role="group" aria-label="ズーム" data-i18n-aria="zoom">
+      <button class="iconbtn" id="zoomIn" aria-label="拡大" data-i18n-aria="zoomIn">＋</button>
+      <button class="iconbtn" id="zoomOut" aria-label="縮小" data-i18n-aria="zoomOut">－</button>
+      <button class="iconbtn" id="zoomFit" aria-label="全体を表示" data-i18n-aria="zoomFit">⤢</button>
+    </div>
+    <div class="overlay" id="overlay"><div class="card" id="card" role="dialog" aria-live="polite"></div></div>
+  </div>
+  <div class="foot" id="foot" data-i18n="foot">マスに触れると、そのマスを通る3本の列と数字が光ります。</div>
+</div>
+</div>
+</div>
+<p id="kbdHelp" class="sr" data-i18n="kbdHelp">矢印キーでカーソル移動、スペースで塗る、Xで×印、Deleteで消す、Ctrl+Zで元に戻す。</p>
+<div id="live" class="sr" aria-live="polite"></div>
+
+<!-- Title screen -->
+<div class="screen" id="titleScreen" role="dialog" aria-modal="true" aria-labelledby="ttl">
+  <div class="tcard">
+    <svg class="tlogo" viewBox="0 0 32 32" aria-hidden="true"><use href="#logo"/></svg>
+    <h1 id="ttl">Hexagrams</h1>
+    <p class="tsub" data-i18n="tagline">六角形のノノグラム ― 3方向の数字から絵を描き出すロジックパズル</p>
+    <div class="tbtns">
+      <button class="btn pri big" id="playBtn" data-i18n="play">はじめる</button>
+      <button class="btn big" id="tHowBtn" data-i18n="howto">遊び方</button>
+    </div>
+    <div class="tbtns"><button class="btn big qt" id="tQuestBtn">🖼 <span data-i18n="qTitle">ピクチャークエスト</span><small data-i18n="qTitleSub">画像から作る六角ドット絵パズル</small></button></div>
+    <div class="tmeta" id="tmeta"></div>
+    <button class="btn small" id="tLangBtn">English</button>
+  </div>
+</div>
+
+<!-- How to play -->
+<div class="screen" id="howScreen" role="dialog" aria-modal="true" aria-labelledby="howTtl" hidden>
+  <div class="hcard">
+    <button class="iconbtn close" id="howClose" aria-label="閉じる" data-i18n-aria="close">✕</button>
+    <h2 id="howTtl" data-i18n="howto">遊び方</h2>
+    <div class="howgrid">
+      <figure><svg id="miniQ" class="mini" aria-label="例題" data-i18n-aria="exQ"></svg><figcaption data-i18n="exQ">例題</figcaption></figure>
+      <figure><svg id="miniA" class="mini" aria-label="答え" data-i18n-aria="exA"></svg><figcaption data-i18n="exA">答え</figcaption></figure>
+    </div>
+    <div class="howtext" id="howText"></div>
+  </div>
+</div>
+
+<!-- Picture Quest: hub (list + import) -->
+<div class="screen qscreen" id="qHub" role="dialog" aria-modal="true" aria-labelledby="qHubTtl" hidden>
+  <div class="hcard qcard">
+    <button class="iconbtn close" id="qHubClose" aria-label="閉じる" data-i18n-aria="close">✕</button>
+    <h2 id="qHubTtl">🖼 <span data-i18n="qTitle">ピクチャークエスト</span></h2>
+    <p class="qlead" data-i18n="qLead">画像を六角形のドット絵に変換し、いくつかのステージ（六角ノノグラム）に分けます。ステージをすべて解くと絵が完成します。</p>
+    <h3 data-i18n="qListH">クエスト</h3>
+    <div class="qlist" id="qList"></div>
+    <h3 data-i18n="qNewH">新しく作る</h3>
+    <div class="drop" id="qDrop" tabindex="-1">
+      <div class="dropin">
+        <label class="btn pri big" for="qFile">📁 <span data-i18n="qPick">画像を選ぶ</span></label>
+        <input type="file" id="qFile" accept="image/*" class="sr">
+        <div class="dhelp" data-i18n="qDropHelp">ここにドラッグ＆ドロップ、または貼り付け（Ctrl+V / ⌘V）もできます</div>
+      </div>
+    </div>
+    <p class="qprivacy" data-i18n="qPrivacy">🔒 画像はこの端末のブラウザの中だけで処理され、どこにもアップロードされません。保存されるのは変換後のマス目と小さな縮小画像だけです。</p>
+    <div class="qedit" id="qEdit" hidden>
+      <div class="qprevwrap">
+        <canvas id="qPrev" aria-label="変換プレビュー" data-i18n-aria="qPreview"></canvas>
+        <div class="qstats" id="qStats" aria-live="polite"></div>
+        <label class="chk qorig"><input type="checkbox" id="qShowOrig"> <span data-i18n="qShowOrig">元画像を重ねて表示</span></label>
+      </div>
+      <div class="qctl">
+        <label class="ql"><span data-i18n="qName">名前</span><input type="text" id="qName" maxlength="40"></label>
+        <div class="ql"><span data-i18n="qRes">細かさ</span><div class="seg" id="qResSeg"><button data-v="s" data-i18n="qResS">小 ~150</button><button data-v="m" class="on" data-i18n="qResM">中 ~350</button><button data-v="l" data-i18n="qResL">大 ~700</button></div></div>
+        <div class="ql"><span data-i18n="qStage">1ステージの大きさ</span><div class="seg" id="qStageSeg"><button data-v="3" class="on" data-i18n="qStage3">標準（37マス）</button><button data-v="4" data-i18n="qStage4">大きめ（61マス）</button></div></div>
+        <div class="ql"><span data-i18n="qColors">色</span><div class="seg" id="qColSeg"><button data-v="1" class="on" data-i18n="qMono">白黒</button><button data-v="2" data-i18n="qC2">2色</button><button data-v="3" data-i18n="qC3">3色</button><button data-v="4" data-i18n="qC4">4色</button></div></div>
+        <div class="ql" id="qThrRow"><span data-i18n="qThr">しきい値</span><div class="thr"><input type="range" id="qThr" min="1" max="254" value="128" aria-label="しきい値" data-i18n-aria="qThr"><output id="qThrOut">128</output><button class="btn small" id="qAuto" data-i18n="qAuto">自動</button></div></div>
+        <label class="chk"><input type="checkbox" id="qInv"> <span data-i18n="qInvert">反転（明るい部分を塗る）</span></label>
+        <label class="ql"><span data-i18n="qEnh">強調</span><select id="qEnh"><option value="none" data-i18n="qEnhNone">なし</option><option value="contrast" selected data-i18n="qEnhC">コントラスト</option><option value="edge" data-i18n="qEnhE">コントラスト＋輪郭</option></select></label>
+        <div class="qbtns"><button class="btn" id="qCancel" data-i18n="qOther">別の画像</button><button class="btn pri big" id="qStart" data-i18n="qStart">▶ このクエストをはじめる</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Picture Quest: map -->
+<div class="screen qscreen" id="qMapScr" role="dialog" aria-modal="true" aria-labelledby="qMapTtl" hidden>
+  <div class="hcard qcard qmapcard">
+    <div class="qmaphead">
+      <button class="btn small" id="qBack">← <span data-i18n="qBackList">一覧</span></button>
+      <h2 id="qMapTtl"></h2>
+      <div class="qprog" id="qProg"></div>
+      <button class="iconbtn" id="qMapClose" aria-label="閉じる" data-i18n-aria="close">✕</button>
+    </div>
+    <div class="qmapbar">
+      <div class="seg" id="qViewSeg" role="radiogroup"><button data-v="puz" class="on" data-i18n="qViewPuz">パズルの色</button><button data-v="orig" data-i18n="qViewOrig">元の色</button></div>
+      <button class="btn small" id="qCompare" data-i18n="qCompare">元画像と比べる</button>
+      <button class="btn small pri" id="qPng">⬇ <span data-i18n="qPng">PNGで保存</span></button>
+    </div>
+    <div class="qmapwrap" id="qMapWrap">
+      <svg id="qMap" xmlns="http://www.w3.org/2000/svg" role="img"></svg>
+      <div class="qcmp" id="qCmp" hidden><figure><img id="qCmpImg" alt=""><figcaption data-i18n="qOrig">元画像（縮小）</figcaption></figure><figure><canvas id="qCmpArt"></canvas><figcaption data-i18n="qArt">六角ドット絵</figcaption></figure></div>
+      <div class="qdone" id="qDone" hidden></div>
+    </div>
+    <div class="help qmaphelp" id="qMapHelp" data-i18n="qMapHelp">ステージを選ぶと遊べます。クリアしたステージには絵が現れます。</div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="lgG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd257"/><stop offset="1" stop-color="#e09a14"/></linearGradient>
+    <symbol id="logo" viewBox="0 0 32 32">
+      <polygon points="16,1 29,8.5 29,23.5 16,31 3,23.5 3,8.5" fill="url(#lgG)"/>
+      <path d="M16 7 L23.8 20.5 L8.2 20.5 Z M16 25 L8.2 11.5 L23.8 11.5 Z" fill="#2a1d05" fill-rule="nonzero" opacity=".85"/>
+    </symbol>
+  </defs>
+</svg>
+<script src="core.js"></script>
+<script src="puzzles.js"></script>
+<script src="app.js"></script>
+<script src="quest-core.js"></script>
+<script src="sample.js"></script>
+<script src="quest.js"></script>
+</body>
+</html>
